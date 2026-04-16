@@ -19,21 +19,17 @@ class BaseSimulator:
         self._simulation_result = None
 
     def simulate(self, **kwargs) -> Dict[str, Any]:
-        """Simulate time series data (to be implemented by subclasses)."""
         raise NotImplementedError("Subclasses must implement simulate()")
 
     def to_dataframe(self) -> pd.DataFrame:
-        """Convert simulation results to pandas DataFrame."""
         if self._simulation_result is None:
             raise ValueError("No simulation has been run yet. Call simulate() first.")
         return self._convert_to_dataframe(self._simulation_result)
 
     def _convert_to_dataframe(self, result: Dict[str, Any]) -> pd.DataFrame:
-        """Convert simulation result dictionary to DataFrame (to be implemented by subclasses)."""
         raise NotImplementedError("Subclasses must implement _convert_to_dataframe()")
 
     def get_params(self) -> Dict[str, Any]:
-        """Get simulation parameters."""
         if self._simulation_result is None:
             raise ValueError("No simulation has been run yet. Call simulate() first.")
         return self._simulation_result.get("params", {})

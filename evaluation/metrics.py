@@ -29,8 +29,6 @@ def crps_score(samples: np.ndarray, targets: np.ndarray) -> float:
     Returns:
         scalar — mean CRPS (lower is better)
     """
-    # samples: [M, T, N]
-    # targets: [T, N]
     M = samples.shape[0]
 
     # term 1: E|X - y|  →  mean over samples of |sample - target|
@@ -63,7 +61,6 @@ def crps_score_fast(samples: np.ndarray, targets: np.ndarray) -> float:
     """
     M = samples.shape[0]
 
-    # term 1
     term1 = np.abs(samples - targets[np.newaxis]).mean(axis=0)   # [T, N]
 
     # term 2 via sorted samples

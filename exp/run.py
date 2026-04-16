@@ -79,9 +79,6 @@ def load_data(args) -> np.ndarray:
 
 
 def load_model(args, pred_len: int):
-    """
-    Instantiate the model specified by args.model.
-    """
     if args.model == "naive":
         from models.naive import NaiveGaussian
         return NaiveGaussian(pred_len=pred_len)
@@ -110,12 +107,7 @@ def run_test_loop(model, test_loader, num_samples: int, norm):
     print(f"Running test loop ({len(test_loader)} batches)...")
 
     for batch_idx, (x, y) in enumerate(test_loader):
-        # x: [batch, context_len, N]
-        # y: [batch, pred_len, N]
-
         samples = model.sample(x, num_samples=num_samples)
-        # samples: [num_samples, batch, pred_len, N]
-
         all_samples.append(samples)
         all_targets.append(y.numpy())
 

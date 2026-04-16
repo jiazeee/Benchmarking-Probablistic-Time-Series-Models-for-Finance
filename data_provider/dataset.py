@@ -29,27 +29,19 @@ class Normalizer:
         self.std = None
 
     def fit(self, train_returns: np.ndarray):
-        """
-        Compute mean and std from training data
-        train_returns: [T_train, N]
-        """
+        """train_returns: [T_train, N]"""
         self.mean = train_returns.mean(axis=0)
         self.std = train_returns.std(axis=0)
         self.std = np.where(self.std < 1e-8, 1.0, self.std)
 
-    def transform (self, returns: np.ndarray) -> np.ndarray:
-        """
-        Standard nomalization
-        returns: [T,N]
-        """
+    def transform(self, returns: np.ndarray) -> np.ndarray:
+        """returns: [T, N]"""
         if self.mean is None:
             raise RuntimeError("Normalizer has not been fit yet. Call fit() first.")
         return (returns - self.mean) / self.std
     
     def inverse_transform(self, returns: np.ndarray) -> np.ndarray:
-        """
-        Undo normalization before computing metrics
-        """
+        """Undo normalization — call this before computing metrics on predictions."""
         if self.mean is None:
             raise RuntimeError("Normalizer has not been fit yet. Call fit() first.")
         return returns * self.std + self.mean

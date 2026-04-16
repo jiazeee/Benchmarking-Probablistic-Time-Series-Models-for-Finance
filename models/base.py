@@ -25,8 +25,6 @@ class ProbForecastModel(ABC):
     @abstractmethod
     def train_model(self, train_loader, val_loader):
         """
-        Train the model.
-
         Args:
             train_loader: DataLoader yielding (x, y) batches from training set
             val_loader:   DataLoader yielding (x, y) batches from validation set
@@ -36,15 +34,12 @@ class ProbForecastModel(ABC):
     @abstractmethod
     def sample(self, past: torch.Tensor, num_samples: int = 100) -> np.ndarray:
         """
-        Generate probabilistic predictions as samples.
-
         Args:
             past:        [batch, context_len, N] — the past window(s)
             num_samples: how many future paths to sample
 
         Returns:
             samples: np.ndarray of shape [num_samples, batch, pred_len, N]
-                     — num_samples plausible futures for each item in the batch
         """
         raise NotImplementedError
     
