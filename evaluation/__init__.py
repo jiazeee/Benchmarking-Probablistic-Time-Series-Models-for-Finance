@@ -1,1 +1,1 @@
-from .metrics import evaluate_all, crps_score_fast, energy_score, quantile_loss, coverage
+from .metrics import evaluate_all, crps, crps_sum, energy_score, variogram_score, quantile_loss, coverage

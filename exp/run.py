@@ -78,19 +78,52 @@ def load_data(args) -> np.ndarray:
     return returns
 
 
-def load_model(args, pred_len: int):
+def load_model(args, pred_len: int, train_loader=None):
     if args.model == "naive":
         from models.naive import NaiveGaussian
         return NaiveGaussian(pred_len=pred_len)
 
-    # future models go here:
-    # elif args.model == "deepvar":
-    #     from models.deep_var import DeepVAR
-    #     return DeepVAR(pred_len=pred_len, ...)
+    elif args.model == "deepvar":
+        from models.deep_var import DeepVAR
+        x_sample, _ = next(iter(train_loader))
+        N = x_sample.shape[2]
+        return DeepVAR(
+            input_size=N,
+            pred_len=pred_len,
+            hidden_size=args.hidden_size,
+            num_layers=args.num_layers,
+            rank=args.rank,
+            embed_dim=args.embed_dim,
+            lr=args.lr,
+            n_epochs=args.n_epochs,
+            patience=args.patience,
+            device="cuda" if torch.cuda.is_available() else "cpu",
+        )
+
+    elif args.model == "timegrad":
+        from models.timegrad import TimeGrad
+        x_sample, _ = next(iter(train_loader))
+        N = x_sample.shape[2]
+        return TimeGrad(
+            input_size=N,
+            pred_len=pred_len,
+            hidden_size=args.hidden_size,
+            conditioning_length=args.conditioning_length,
+            diff_steps=args.diff_steps,
+            beta_end=args.beta_end,
+            beta_schedule=args.beta_schedule,
+            residual_layers=args.residual_layers,
+            residual_channels=args.residual_channels,
+            dilation_cycle_length=args.dilation_cycle_length,
+            lr=args.lr,
+            n_epochs=args.n_epochs,
+            patience=args.patience,
+            device="cuda" if torch.cuda.is_available() else "cpu",
+        )
 
     else:
         raise ValueError(f"Unknown model: {args.model}. "
-                         f"Available: naive")
+                         f"Available: naive, deepvar, timegrad")
 
 
 def run_test_loop(model, test_loader, num_samples: int, norm):
@@ -157,7 +190,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run a probabilistic forecasting experiment")
 
     parser.add_argument("--model",       type=str,   default="naive",
-                        help="Model to use: naive (more coming)")
+                        help="Model to use: naive, deepvar, timegrad")
     parser.add_argument("--data",        type=str,   default="garch",
                         help="Data source: djia, garch, har, heavy_tail, regime, hawkes, zip")
     parser.add_argument("--T",           type=int,   default=2000,
@@ -173,6 +206,26 @@ def main():
     parser.add_argument("--batch_size",  type=int,   default=32)
     parser.add_argument("--num_samples", type=int,   default=100,
                         help="Number of sample paths to draw from the model")
+
+    # Shared hyperparameters
+    parser.add_argument("--hidden_size", type=int,   default=64)
+    parser.add_argument("--lr",          type=float, default=1e-3)
+    parser.add_argument("--n_epochs",    type=int,   default=50)
+    parser.add_argument("--patience",    type=int,   default=5)
+
+    # DeepVAR-specific
+    parser.add_argument("--num_layers",  type=int,   default=2)
+    parser.add_argument("--rank",        type=int,   default=5)
+    parser.add_argument("--embed_dim",   type=int,   default=4)
+
+    # TimeGrad-specific
+    parser.add_argument("--conditioning_length",  type=int,   default=64)
+    parser.add_argument("--diff_steps",           type=int,   default=100)
+    parser.add_argument("--beta_end",             type=float, default=0.1)
+    parser.add_argument("--beta_schedule",        type=str,   default="linear")
+    parser.add_argument("--residual_layers",      type=int,   default=8)
+    parser.add_argument("--residual_channels",    type=int,   default=8)
+    parser.add_argument("--dilation_cycle_length",type=int,   default=2)
 
     args = parser.parse_args()
 
@@ -194,7 +247,7 @@ def main():
     )
 
     # 3. load and train model
-    model = load_model(args, pred_len=args.pred_len)
+    model = load_model(args, pred_len=args.pred_len, train_loader=train_loader)
     print(f"\nTraining {args.model}...")
     model.train_model(train_loader, val_loader)
 
@@ -202,10 +255,15 @@ def main():
     print(f"\nSampling from {args.model} on test set...")
     samples, targets = run_test_loop(model, test_loader, args.num_samples, norm)
 
-    # 5. save outputs
+    # 5. inverse-transform to original scale before saving and evaluating
+    # samples: [M, T, N], targets: [T, N] — both normalised; undo here
+    samples = norm.inverse_transform(samples)
+    targets = norm.inverse_transform(targets)
+
+    # 6. save outputs
     save_outputs(run_id, samples, targets, args)
 
-    # 6. evaluate and print results
+    # 7. evaluate and print results
     print(f"\nResults for {run_id}:")
     results = evaluate_all(samples, targets)
     print(f"\n{'Metric':<20} {'Value':>10}")

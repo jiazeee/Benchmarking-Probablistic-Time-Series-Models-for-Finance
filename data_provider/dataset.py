@@ -105,7 +105,7 @@ def load_djia(csv_path: str) -> np.ndarray:
     
     # ensure no other NaNs sneak in
     if df.isnull().any().any():
-        null_cols = df.collumns[df.isnull().any()].tolist()
+        null_cols = df.columns[df.isnull().any()].tolist()
         raise ValueError(f"Unexpected NaN values in columns: {null_cols}. "
                          f"Inspect the data before proceeding.")
     
@@ -171,7 +171,7 @@ def get_dataloaders(
     val_dataset = ProbTSDataset(val_norm, context_len, pred_len)
     test_dataset = ProbTSDataset(test_norm, context_len, pred_len)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
